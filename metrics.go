@@ -9,8 +9,9 @@ type Metrics struct {
 	Failed             prometheus.Gauge
 	Errors             prometheus.Gauge
 	Skipped            prometheus.Gauge
-	Tests              prometheus.Gauge
+	Total              prometheus.Gauge
 	Assertions         prometheus.Gauge
+	TestDuration       prometheus.Gauge
 	ModuleAssertions   *prometheus.GaugeVec
 	ModuleTesttime     *prometheus.GaugeVec
 	ModuleTestscount   *prometheus.GaugeVec
@@ -45,15 +46,20 @@ func setupProm() Metrics {
 		Name:      "skipped",
 		Help:      "The number of tests that were skipped.",
 	})
-	m.Tests = prometheus.NewGauge(prometheus.GaugeOpts{
+	m.Total = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: "nightwatchjs",
-		Name:      "tests",
+		Name:      "total",
 		Help:      "The total number of tests.",
 	})
 	m.Assertions = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: "nightwatchjs",
 		Name:      "assertions",
 		Help:      "The total number of assertions.",
+	})
+	m.TestDuration = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "nightwatchjs",
+		Name:      "test_duration",
+		Help:      "The total test duration in seconds.",
 	})
 
 	m.ModuleAssertions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -112,8 +118,9 @@ func setupProm() Metrics {
 		m.Failed,
 		m.Errors,
 		m.Skipped,
-		m.Tests,
+		m.Total,
 		m.Assertions,
+		m.TestDuration,
 		m.ModuleAssertions,
 		m.ModuleTesttime,
 		m.ModuleTestscount,

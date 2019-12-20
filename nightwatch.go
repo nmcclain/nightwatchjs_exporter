@@ -22,12 +22,15 @@ func start_nightwatch_runner(cfg Config) {
 		log.Fatalf("Error changing to nightwatch directory %s: %s", cfg.NightwatchjsDir, err)
 	}
 	for {
+		start := time.Now()
 		r, err := run_nightwatch(wd, cfg)
 		if err != nil {
 			log.Printf("Error with nightwatch - not updating metrics: %s", err)
+			metrics.Errors.Inc()
 			time.Sleep(cfg.DelayTime)
 			continue
 		}
+		durationSec := time.Now().Sub(start).Seconds()
 		for name, module := range r.Modules {
 			metrics.ModuleAssertions.WithLabelValues(name).Set(module.AssertionsCount)
 			metrics.ModuleTesttime.WithLabelValues(name).Set(module.TestTime)
@@ -39,15 +42,14 @@ func start_nightwatch_runner(cfg Config) {
 			metrics.ModuleTests.WithLabelValues(name).Set(module.Tests)
 			metrics.ModuleFailures.WithLabelValues(name).Set(module.Failures)
 			metrics.ModuleErrors.WithLabelValues(name).Set(module.Errors)
-
-			// Completed       map[string]NightwatchTest
 		}
 		metrics.Passed.Set(r.Passed)
 		metrics.Failed.Set(r.Failed)
 		metrics.Errors.Set(r.Errors)
 		metrics.Skipped.Set(r.Skipped)
-		metrics.Tests.Set(r.Tests)
+		metrics.Total.Set(r.Tests)
 		metrics.Assertions.Set(r.Assertions)
+		metrics.TestDuration.Set(durationSec)
 		time.Sleep(cfg.DelayTime)
 	}
 }
@@ -144,7 +146,7 @@ func run_nightwatch(wd string, cfg Config) (NightwatchResult, error) {
 	}
 	if err := cmd.Wait(); err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
-			// nightwatch does exit(5) on test failures, which is cool
+			// nightwatch calls exit(5) on test failures, which is cool
 			if exitErr.ExitCode() != 5 && exitErr.ExitCode() != 10 {
 				return nwResult, fmt.Errorf("Nightwatch exited with error: %s", exitErr)
 			}

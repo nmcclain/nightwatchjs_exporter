@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"regexp"
 	"strconv"
 	"time"
 
@@ -12,7 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-var version = "1.0.0"
+var version = "1.0.1"
 
 var usage = `nightwatchjs_exporter
 Usage:
@@ -24,7 +23,7 @@ Options:
   -n, --nightwatch=<path>  REQUIRED: Path to your nightwatch executable.
   -t, --testdir=<path>     REQUIRED: Directory containing your 'nightwatch.json' file and 'tests' directory.
   --delay=<secs>           Delay in seconds between test executions [default: 30].
-  --listen=<host:port>     HTTP listen address [default: :9116].
+  --listen=<host:port>     HTTP listen address [default: :9355].
  
 Example:
   nightwatchjs_exporter --nightwatch=/usr/bin/nightwatch --testdir=/home/my_test_dir
@@ -43,6 +42,15 @@ func main() {
 		log.Fatalf("Config error: %s", err)
 	}
 	go start_nightwatch_runner(cfg)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`<html>
+			<head><title>Nightwatch.js Exporter</title></head>
+			<body>
+			<h1>Nightwatch.js Exporter</h1>
+			<p><a href="/metrics">Metrics</a></p>
+			</body>
+			</html>`))
+	})
 	http.Handle("/metrics", promhttp.Handler())
 	log.Fatal(http.ListenAndServe(cfg.ListenAddr, nil))
 }
@@ -65,22 +73,3 @@ func getConfig() (Config, error) {
 
 	return c, nil
 }
-
-var validationRe = regexp.MustCompile(`[a-zA-Z_][a-zA-Z0-9_]*`)
-
-/*
-func getMetricName(name, metric string) string {
-	metricName := fmt.Sprintf("module_%s_%s", name, metric)
-	if model.IsValidMetricName(model.LabelValue(metricName)) {
-		return metricName
-	}
-	validParts := validationRe.FindAllStringSubmatch(metricName, -1)
-	validName := ""
-	for _, part := range validParts {
-		if len(part) > 0 {
-			validName += part[0]
-		}
-	}
-	return validName
-}
-*/
